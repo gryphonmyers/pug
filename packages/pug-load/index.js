@@ -61,10 +61,24 @@ load.resolve = function resolve(filename, source, options) {
   if (filename[0] === '/' && !options.basedir)
     throw new Error('the "basedir" option is required to use includes and extends with "absolute" paths');
 
-  filename = path.join(filename[0] === '/' ? options.basedir : path.dirname(source.trim()), filename);
+  if (filename[0] === '/' && Array.isArray(options.basedir)) {
+    var pathExists;
+    var paths = options.basedir.slice();
+    var currentPath;
+    while (!pathExists && paths.length) {
+      currentPath = path.join(paths.shift(), filename);
+      pathExists = fs.existsSync(currentPath);
+    }
+    if (!pathExists)
+      throw new Error('Filename "' + filename + '" could not be resolved for basedirs in input array.');
+    filename = currentPath;
+  } else {
+    filename = path.join(path.dirname(source.trim()), filename);
+  }
 
   return filename;
 };
+
 load.read = function read(filename, options) {
   return fs.readFileSync(filename, 'utf8');
 };
